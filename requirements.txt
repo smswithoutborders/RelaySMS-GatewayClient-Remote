@@ -1,0 +1,4 @@
+Flask==3.0.3
+mod_wsgi==5.0.0
+requests==2.32.3
+twilio==9.2.3
