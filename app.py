@@ -1,5 +1,6 @@
 """Flask Application."""
 
+from concurrent.futures import ThreadPoolExecutor
 from flask import Flask, request, Blueprint, jsonify
 import requests
 from twilio.twiml.messaging_response import MessagingResponse
@@ -12,6 +13,36 @@ GATEWAY_SERVER_PORT = get_configs("GATEWAY_SERVER_PORT", strict=True)
 PORT = get_configs("PORT", default_value=7000)
 
 api_bp_v1 = Blueprint("api", __name__, url_prefix="/v1")
+
+gateway_server_urls = (
+    f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/sms/platform/twilio",
+    f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/v3/publish",
+)
+
+
+def gateway_server_request(url, payload):
+    """
+    Send a POST request to the specified gateway server URL.
+
+    Args:
+        url (str): The URL to send the request to.
+        payload (dict): The payload to send in the request.
+
+    Returns:
+        requests.Response: The response from the server.
+    """
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        app.logger.info(
+            "Response from Gateway Server (%s): %s -- %s",
+            url,
+            response.status_code,
+            response.text,
+        )
+        return response
+    except requests.RequestException as e:
+        app.logger.error("Failed to send request to %s: %s", url, e)
+        return None
 
 
 @api_bp_v1.route("/twilio-sms", methods=["GET", "POST"])
@@ -34,20 +65,17 @@ def twilio_incoming_sms():
             return jsonify({"error": "Missing required field: 'Body'"}), 400
 
         publish_payload = {"address": data["From"], "text": data["Body"]}
-        gateway_server_url = (
-            f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/sms/platform/twilio"
-        )
-        response = requests.post(gateway_server_url, json=publish_payload, timeout=10)
-        app.logger.info(
-            "Response from Gateway Server: %s -- %s",
-            response.status_code,
-            response.text,
-        )
+
+        with ThreadPoolExecutor(max_workers=len(gateway_server_urls)) as executor:
+            executor.map(
+                lambda url: gateway_server_request(url, publish_payload),
+                gateway_server_urls,
+            )
 
         return str(resp)
 
     except Exception as e:
-        app.logger.exception("Error processing incoming twilio sms: %s", e)
+        app.logger.exception("Error processing incoming Twilio SMS: %s", e)
         return (
             jsonify({"error": "Oops! Something went wrong. Please try again later."}),
             500,
