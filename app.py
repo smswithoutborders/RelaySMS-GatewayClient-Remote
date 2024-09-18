@@ -16,7 +16,6 @@ api_bp_v1 = Blueprint("api", __name__, url_prefix="/v1")
 
 gateway_server_urls = (
     f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/sms/platform/twilio",
-    f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/v3/publish",
 )
 
 
