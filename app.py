@@ -14,8 +14,14 @@ PORT = get_configs("PORT", default_value=7000)
 
 api_bp_v1 = Blueprint("api", __name__, url_prefix="/v1")
 
+"""
 gateway_server_urls = (
     f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/sms/platform/twilio",
+)
+"""
+
+gateway_server_urls = (
+    f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/v3/publish",
 )
 
 
@@ -43,6 +49,41 @@ def gateway_server_request(url, payload):
         app.logger.error("Failed to send request to %s: %s", url, e)
         return None
 
+
+@api_bp_v1.route("/messagebird-sms", methods=["GET", "POST"])
+def messagebird_incoming_sms():
+    """
+    Endpoint to handle incoming messages from Twilio.
+    """
+    try:
+        data = request.form.to_dict()
+        app.logger.debug("Received data from Twilio: %s", data)
+
+        if not data.get("originator"):
+            app.logger.error("Missing required field: 'originator'")
+            return jsonify({"error": "Missing required field: 'originator'"}), 400
+
+        if not data.get("payload"):
+            app.logger.error("Missing required field: 'payload'")
+            return jsonify({"error": "Missing required field: 'payload'"}), 400
+
+        publish_payload = {"address": data["originator"], "text": data["payload"]}
+        app.logger.info("Publish payload: %s", publish_payload)
+
+        with ThreadPoolExecutor(max_workers=len(gateway_server_urls)) as executor:
+            executor.map(
+                lambda url: gateway_server_request(url, publish_payload),
+                gateway_server_urls,
+            )
+
+        return str(resp)
+
+    except Exception as e:
+        app.logger.exception("Error processing incoming Twilio SMS: %s", e)
+        return (
+            jsonify({"error": "Oops! Something went wrong. Please try again later."}),
+            500,
+        )
 
 @api_bp_v1.route("/twilio-sms", methods=["GET", "POST"])
 def twilio_incoming_sms():
