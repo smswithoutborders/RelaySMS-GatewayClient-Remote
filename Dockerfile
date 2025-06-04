@@ -1,4 +1,6 @@
-FROM python:3.12
+FROM python:3.13.3-slim
+
+WORKDIR /remote_gateway_client
 
 RUN apt-get update && \ 
     apt-get install -y \
@@ -8,22 +10,11 @@ RUN apt-get update && \
     python3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-WORKDIR /
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --disable-pip-version-check --quiet --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN pip install -U pip && \
-    pip install --no-cache-dir wheel && \
-    pip install --no-cache-dir -r requirements.txt 
-
-CMD mod_wsgi-express start-server wsgi.py \
-    --user www-data \
-    --group www-data \
-    --port '${PORT}' \
-    --https-port '${HTTPS_PORT}' \
-    --server-name '${SERVER_NAME}'\
-    --ssl-certificate-file '${SSL_CERTIFICATE_FILE}' \
-    --ssl-certificate-key-file '${SSL_CERTIFICATE_KEY_FILE}' \
-    --ssl-certificate-chain-file '${SSL_CERTIFICATE_CHAIN_FILE}' \
-    --https-only \
-    --log-to-terminal
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:${HTTPS_PORT}", "--log-level=info", "--access-logfile=-", "--certfile=${SSL_CERTIFICATE_FILE}", "--keyfile=${SSL_CERTIFICATE_KEY_FILE}", "--threads", "15", "--timeout", "30", "app:app"]

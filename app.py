@@ -1,6 +1,7 @@
 """Flask Application."""
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from flask import Flask, request, Blueprint, jsonify
 import requests
 from twilio.twiml.messaging_response import MessagingResponse
@@ -14,9 +15,7 @@ PORT = get_configs("PORT", default_value=7000)
 
 api_bp_v1 = Blueprint("api", __name__, url_prefix="/v1")
 
-gateway_server_urls = (
-    f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/sms/platform/twilio",
-)
+gateway_server_urls = (f"{GATEWAY_SERVER_HOST}:{GATEWAY_SERVER_PORT}/v3/publish",)
 
 
 def gateway_server_request(url, payload):
@@ -63,7 +62,12 @@ def twilio_incoming_sms():
             app.logger.error("Missing required field: 'Body'")
             return jsonify({"error": "Missing required field: 'Body'"}), 400
 
-        publish_payload = {"address": data["From"], "text": data["Body"]}
+        publish_payload = {
+            "address": data["From"],
+            "text": data["Body"],
+            "date": str(int(datetime.now().timestamp())),
+            "date_sent": str(int(datetime.now().timestamp())),
+        }
 
         with ThreadPoolExecutor(max_workers=len(gateway_server_urls)) as executor:
             executor.map(
