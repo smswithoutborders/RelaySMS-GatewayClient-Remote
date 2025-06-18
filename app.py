@@ -62,11 +62,12 @@ def twilio_incoming_sms():
             app.logger.error("Missing required field: 'Body'")
             return jsonify({"error": "Missing required field: 'Body'"}), 400
 
+        now_ms = int(datetime.now().timestamp() * 1000)
         publish_payload = {
             "address": data["From"],
             "text": data["Body"],
-            "date": str(int(datetime.now().timestamp())),
-            "date_sent": str(int(datetime.now().timestamp())),
+            "date": str(now_ms),
+            "date_sent": str(now_ms),
         }
 
         with ThreadPoolExecutor(max_workers=len(gateway_server_urls)) as executor:
