@@ -13,7 +13,7 @@ RUN apt-get update && \
 COPY requirements.txt .
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --disable-pip-version-check --no-cache-dir -r requirements.txt
+    pip install --disable-pip-version-check -r requirements.txt
 
 COPY . .
 
