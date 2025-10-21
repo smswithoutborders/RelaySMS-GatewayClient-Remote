@@ -33,14 +33,42 @@ Make sure you have Python 3.7 or higher installed on your system.
    pip install -r requirements.txt
    ```
 
+### Configuration
+
+The application requires the following environment variables:
+
+#### Required Variables
+
+- `GATEWAY_SERVER_HOST`: The hostname of the gateway server
+- `GATEWAY_SERVER_PORT`: The port of the gateway server
+
+#### Optional Variables
+
+- `PORT`: The port to run the application on (default: 7000)
+
+#### SMTP Configuration (Optional)
+
+- `SMTP_HOST`: SMTP server hostname (default: smtp.gmail.com)
+- `SMTP_PORT`: SMTP server port (default: 587)
+- `SMTP_USERNAME`: Username for SMTP authentication
+- `SMTP_PASSWORD`: Password for SMTP authentication
+- `SMTP_FROM_ADDRESS`: Email address to send from
+- `SMTP_TO_ADDRESS`: Email address to send notifications to
+
 ### Running the Application
 
 1. **Start the Application**:
 
    ```bash
-   GATEWAY_SERVER_HOST= \
-   GATEWAY_SERVER_PORT= \
-   PORT= \
+   GATEWAY_SERVER_HOST=your_gateway_host \
+   GATEWAY_SERVER_PORT=your_gateway_port \
+   SMTP_HOST=smtp.gmail.com \
+   SMTP_PORT=587 \
+   SMTP_USERNAME=your_email@gmail.com \
+   SMTP_PASSWORD=your_app_password \
+   SMTP_FROM_ADDRESS=your_email@gmail.com \
+   SMTP_TO_ADDRESS=notifications@yourdomain.com \
+   PORT=7000 \
    python3 app.py
    ```
 
